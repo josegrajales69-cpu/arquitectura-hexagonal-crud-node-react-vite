@@ -1,0 +1,21 @@
+import 'dotenv/config';
+import { pool } from './database.js';
+import { passwords } from '../security/BcryptPasswordHasher.js';
+
+const reviewed = '2026-09-25';
+const products = [
+  ['PC Gamer PC-083-A · Ryzen 7 5700 / RTX 4060','PC armada','SKU PC-083-A · Ryzen 7 5700, GeForce RTX 4060, 16 GB RAM y SSD de 1 TB. Precio observado en Cyberpuerta; confirma disponibilidad y envío con el proveedor.',21369,4,'https://www.cyberpuerta.mx/img/product/L/CP-PCGAMER-PC-083-A-a0bca6.png','https://www.cyberpuerta.mx/Computadoras/PC-s-de-Escritorio/Computadora-Gamer-PC-Gamer-PC-083-A-AMD-Ryzen-7-5700-NVIDIA-GeForce-RTX-4060-16GB-1TB-SSD-Windows-10-Prueba.html',true,reviewed],
+  ['PC Gamer PC-052-B · Ryzen 7 5700X / RTX 4060','PC armada','SKU PC-052-B · Ryzen 7 5700X, GeForce RTX 4060, 32 GB RAM y SSD de 1 TB. Configuración equilibrada para juego y creación de contenido.',22099,6,'https://www.cyberpuerta.mx/img/product/XL/CP-PCGAMER-PC-052-B-a27413.png','https://www.cyberpuerta.mx/Computadoras/PC-s-de-Escritorio/Computadora-Gamer-PC-Gamer-PC-052-B-AMD-Ryzen-7-5700X-NVIDIA-GeForce-RTX-4060-32GB-1TB-SSD-Windows-10-Prueba.html',true,reviewed],
+  ['Xtreme PC CM-05528 · Ryzen 7 / RTX 5060','PC armada','SKU XTBRR716GB4060MTW · Ryzen 7 5700, GeForce RTX 5060, 32 GB RAM, SSD de 1 TB y Wi-Fi. El proveedor indica que está agotada.',16899,0,'https://www.cyberpuerta.mx/img/product/L/CP-XTREMEPCGAMING-XTBRR716GB4060MTW-0d3a5e.jpg','https://www.cyberpuerta.mx/Computadoras/PC-s-de-Escritorio/Computadora-Gamer-Xtreme-PC-Gaming-CM-05528-AMD-Ryzen-7-5700-NVIDIA-GeForce-RTX-5060-32GB-1TB-SSD-Wi-Fi-Windows-10-Prueba.html',true,reviewed],
+  ['AOC 27G50F · Monitor IPS 27″ 144 Hz','Monitores','Full HD 1920×1080, panel IPS de 27 pulgadas, 144 Hz, FreeSync/G-SYNC, HDMI y DisplayPort.',2139,8,'https://www.cyberpuerta.mx/img/product/L/CP-AOC-27G50F-1.jpg','https://www.cyberpuerta.mx/Computo-Hardware/Monitores/Monitores/Monitor-Gamer-AOC-27G50F-LCD-IPS-27-1920x1080-Full-HD-G-Sync-FreeSync-144Hz-HDMI-DisplayPort-Negro.html',false,reviewed],
+  ['Logitech G203 LIGHTSYNC · Mouse gamer alámbrico','Accesorios','SKU 910-005793 · Sensor óptico de hasta 8,000 DPI, conexión USB-A y diseño ergonómico para diestros.',421,6,'https://www.cyberpuerta.mx/img/product/L/CP-LOGITECH-910-005793-1.jpg','https://www.cyberpuerta.mx/Por-Marca/LOGITECH/Mouse-Gamer-Ergonomico-Logitech-G203-LightSync-Alambrico-Optico-8-000DPI-USB-A-Negro.html',false,reviewed],
+];
+
+try {
+  await pool.query("UPDATE products SET source_url='https://www.cyberpuerta.mx/Computadoras/PC-s-de-Escritorio/Computadora-Gamer-Xtreme-PC-Gaming-CM-05528-AMD-Ryzen-7-5700-NVIDIA-GeForce-RTX-5060-32GB-1TB-SSD-Wi-Fi-Windows-10-Prueba.html' WHERE name='Xtreme PC · Ryzen 7 + RTX 4060'");
+  await pool.query("UPDATE products SET name='Logitech G203 LIGHTSYNC · Mouse gamer alámbrico',category='Accesorios',description='SKU 910-005793 · Sensor óptico de hasta 8,000 DPI, conexión USB-A y diseño ergonómico para diestros.',price_mxn=421,stock=6,image_url='https://www.cyberpuerta.mx/img/product/L/CP-LOGITECH-910-005793-1.jpg',source_url='https://www.cyberpuerta.mx/Por-Marca/LOGITECH/Mouse-Gamer-Ergonomico-Logitech-G203-LightSync-Alambrico-Optico-8-000DPI-USB-A-Negro.html',featured=false,source_checked_at=$1::date WHERE name='Setup RGB · estación gamer'", [reviewed]);
+  for (const p of products) await pool.query('INSERT INTO products(name,category,description,price_mxn,stock,image_url,source_url,featured,source_checked_at) VALUES($1::varchar,$2::varchar,$3::text,$4::numeric,$5::integer,$6::text,$7::text,$8::boolean,$9::date) ON CONFLICT (source_url) WHERE source_url IS NOT NULL DO UPDATE SET name=EXCLUDED.name,category=EXCLUDED.category,description=EXCLUDED.description,price_mxn=EXCLUDED.price_mxn,stock=EXCLUDED.stock,image_url=EXCLUDED.image_url,featured=EXCLUDED.featured,source_checked_at=EXCLUDED.source_checked_at',p);
+  const hash = await passwords.hash('NexusAdmin2026!');
+  await pool.query("INSERT INTO users(name,email,password_hash,role) VALUES('Nexus Admin','admin@nexus.test',$1,'admin') ON CONFLICT(email) DO UPDATE SET password_hash=EXCLUDED.password_hash,role='admin'",[hash]);
+  console.log('Catálogo actualizado y cuenta administradora lista.');
+} finally { await pool.end(); }
