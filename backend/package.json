@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "seed": "node src/infrastructure/config/seed.js"
+    "seed": "node src/infrastructure/config/seed.js",
+    "test": "node --test src/application/use-cases/orders.test.js",
+    "test:email": "node scripts/test-email.js",
+    "demo:checkout": "node scripts/demo-checkout.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -14,6 +17,7 @@
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^10.0.13",
     "pg": "^8.16.3"
   }
 }

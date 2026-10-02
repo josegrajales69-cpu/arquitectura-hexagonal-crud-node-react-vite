@@ -63,6 +63,25 @@ La guía está disponible en [`docs/despliegue-wsl.md`](docs/despliegue-wsl.md).
 
 El script `npm run seed` actualiza el catálogo y crea la cuenta administradora (`admin@nexus.test`, contraseña inicial `NexusAdmin2026!`). Cambia la contraseña antes de publicar el sistema.
 
+## Notificaciones de pedidos por correo
+
+Al registrar una orden, el caso de uso la guarda con estado `pending` (en la interfaz: **Pendiente de Pago**) y después solicita dos notificaciones: una confirmación para la dirección del cliente y un aviso para `ADMIN_EMAIL`. La confirmación incluye las partidas, el total y las instrucciones definidas por `PAYMENT_INSTRUCTIONS`. No se procesa un pago en línea.
+
+El caso de uso depende únicamente del puerto `EmailServicePort`. El adaptador de salida `NodemailerAdapter` implementa dicho contrato y usa el SMTP configurado. El renderizado de los correos está aislado en `emailTemplates.js`. Las credenciales SMTP se leen de `backend/.env`; el repositorio solo incluye valores de ejemplo en `.env.example`. No publiques secretos ni datos bancarios reales.
+
+### Pruebas
+
+```bash
+cd backend
+npm install
+npm test
+npm run test:email
+```
+
+`npm test` valida el envío al cliente y administrador después de guardar la orden, el estado pendiente, la tolerancia a errores SMTP y el escape de HTML. `npm run test:email` envía mensajes a un buzón temporal de Ethereal y muestra los enlaces de vista previa; no entrega correo real.
+
+Para demostrar también el checkout de React sin PostgreSQL, ejecuta `npm run demo:checkout` en `backend` y configura `VITE_API_URL=http://localhost:4001/api` en `frontend`. El harness usa usuario, artículo y orden ficticios en memoria, pero reutiliza el caso de uso de pedidos y el adaptador Nodemailer. Al detenerlo, los pedidos temporales se pierden. Las capturas de una ejecución se incluyen en el entregable de la actividad.
+
 ## Endpoints
 
 | Método | Ruta | Descripción | Acceso |

@@ -4,6 +4,7 @@ import { makeUsers } from '../../../../application/use-cases/users.js';
 import { makeProducts } from '../../../../application/use-cases/products.js';
 import { makeOrders } from '../../../../application/use-cases/orders.js';
 import { postgresRepositories } from '../../outbound/PostgresRepository.js';
+import { NodemailerAdapter } from '../../outbound/NodemailerAdapter.js';
 import { passwords } from '../../../security/BcryptPasswordHasher.js';
 import { tokens } from '../../../security/JwtTokenService.js';
 import { authenticate, adminOnly } from './middleware.js';
@@ -11,7 +12,18 @@ import { authenticate, adminOnly } from './middleware.js';
 const auth = makeAuth({ users: postgresRepositories.users, passwords, tokens });
 const users = makeUsers({ users: postgresRepositories.users, passwords });
 const products = makeProducts({ products: postgresRepositories.products });
-const orders = makeOrders({ orders: postgresRepositories.orders });
+let emailService;
+try {
+  emailService = NodemailerAdapter.fromEnvironment();
+} catch (error) {
+  console.warn(`Correo deshabilitado: ${error.message}`);
+}
+const orders = makeOrders({
+  orders: postgresRepositories.orders,
+  emailService,
+  adminEmail: process.env.ADMIN_EMAIL,
+  paymentInstructions: process.env.PAYMENT_INSTRUCTIONS,
+});
 const asyncRoute = (fn) => (req,res,next) => Promise.resolve(fn(req,res)).catch(next);
 const router = express.Router();
 
@@ -35,7 +47,9 @@ router.delete('/products/:id', authenticate, adminOnly, asyncRoute(async (req,re
 
 router.get('/orders', authenticate, asyncRoute(async (req,res) => res.json(await orders.list({id:req.user.sub,role:req.user.role}))));
 router.get('/orders/:id', authenticate, asyncRoute(async (req,res) => res.json(await orders.get(req.params.id,{id:req.user.sub,role:req.user.role}))));
-router.post('/orders', authenticate, asyncRoute(async (req,res) => res.status(201).json(await orders.create({id:req.user.sub},req.body.items))));
+router.post('/orders', authenticate, asyncRoute(async (req,res) => res.status(201).json(await orders.create({
+  id:req.user.sub, name:req.user.name, email:req.user.email,
+},req.body.items))));
 router.put('/orders/:id', authenticate, adminOnly, asyncRoute(async (req,res) => {
   const order = req.body.status === 'cancelled'
     ? await orders.cancel(req.params.id,{id:req.user.sub,role:req.user.role})
